@@ -11,19 +11,23 @@
 #define Fin_llamada       5 /*Evento 5: fin llamada*/
 
 // Definición servidores y colas
-#define Servidor          1  /* Lista 1: Servidor                   */
-#define Cola_llamadas     2  /* Lista 2: Cola */
-#define Cola_Operador_1   3
-#define Cola_Operador_2   4
-#define Cola_Operador_3   5
-#define Cola_Operador_4   6
+#define Servidor          1/* Lista 1: Servidor*/
+#define Servidor_Operador_1 2
+#define Servidor_Operador_2 3
+#define Servidor_Operador_3 4
+#define Servidor_Operador_4 5
+#define Cola_llamadas     6  /* Lista 2: Cola */
+#define Cola_Operador_1   7
+#define Cola_Operador_2   8
+#define Cola_Operador_3   9
+#define Cola_Operador_4   10
 // Definición sampst para demoras
 #define Demora_cola_llamadas       1  /* Sampst 1: Demora en Cola            */
 #define Demora_Consulta            2 /*Sampst 2 : Demora de toda consulta*/
 
 /* Declaraci¢n de variables */
 
-float media_interllamadas,tiempo_activo, tiempo_inactivo,min_consulta_breve, max_consulta_breve, media_otros, desv_estandar_otros, probabilidad_falla, probabilidad_llamada, probabilidad_operador_ocupado,probabilidad_operador_libre,cant_fallas,cant_días;
+float media_interllamadas,tiempo_activo, tiempo_inactivo,min_consulta_breve, max_consulta_breve, media_otros, desv_estandar_otros, probabilidad_falla, probabilidad_llamada, probabilidad_operador_ocupado,probabilidad_operador_libre,cant_fallas,cant_días, OperadorAtendio;
 
 // Definición posiciones transfer
 #define Tiempo_Evento   1
@@ -108,7 +112,7 @@ int main()  /* Main function. */
 void inicializa(void)  /* Inicializar el Sistema */
 {
 	/* Se carga el primer inicio día */
-	transfer[Tiempo_Evento] = tiempo_inactivo;
+	transfer[Tiempo_Evento] = sim_time+tiempo_inactivo;
 	transfer[Tipo_Evento] = Inicio_dia;
 	
 	list_file(INCREASING,LIST_EVENT);
@@ -121,6 +125,12 @@ Rutina_inicio_día(tiempo_inactivo)
 	{
 		transfer[Tiempo_Evento] = tiempo_inactivo;
 		transfer[Tipo_Evento] = Inicio_dia;
+		// Se pronostica el primer arribo de llamadas
+		transfer[Tiempo_Evento] = sim_time + expon(media_interllamadas, Arribo_llamadas);
+		transfer[Tiempo_Evento] = Arribo_llamadas;
+		list_file(INCREASING, LIST_EVENT);
+		list_file[INCREASING, LIST_EVENT]
+
 
 	}
 void Rutina_arribo_llamada(void)  /* Evento Arribo */
@@ -133,12 +143,26 @@ void Rutina_arribo_llamada(void)  /* Evento Arribo */
 
 	/* Chequear si el Servidor est  desocupado */
 
-	if (list_size[Servidor] == 0)
+	if (list_size[Servidor_Operador_1] == 0)
 	{
+
 
 	   /* Si está desocupado ocuparlo y generar la partida */
 
-	   list_file(FIRST, Servidor);
+	   list_file(FIRST, Servidor_Operador_1);
+	}
+	else if (list_size[Servidor_Operador_2]==0)
+		{
+			list_file(FIRST, Servidor_Operador_2);
+		}
+	else if (list_size[Servidor_Operador_3]==0)
+		{
+			list_file(FIRST, Servidor_Operador_3)
+		}
+	else
+	{
+		list_file(FIRST, Servidor_Operador_4)
+	}
 	   sampst(0.0, Demora_cola_llamadas);
 	   probabilidad_llamada = lcgrand(Arribo_llamadas);
 	   if (probabilidad_llamada <= 0.35)
@@ -151,7 +175,7 @@ void Rutina_arribo_llamada(void)  /* Evento Arribo */
 		   transfer[Tiempo_Evento] = sim_time + (media_otros, Arribo_llamadas);
 		   transfer[Tipo_Llamada] = 2;
 	   }
-	   if (list_size[Cola_Operador_1] > 0 && list_size[Cola_Operador_2] > 0 && list_size[Cola_Operador_3] > 0 && list_size[Cola_Operador_4] > 0)
+	   if (list_size[Servidor_Operador_1] > 0 && list_size[Servidor_Operador_2] > 0 && list_size[Servidor_Operador_3] > 0 && list_size[_Operador_4] > 0)
 			 {
 				  probabilidad_operador_ocupado = lcgrand(11);
 				  // Acá se debería determinar lo que hace cada cliente si todo operador está ocupado
@@ -184,7 +208,7 @@ void Rutina_arribo_llamada(void)  /* Evento Arribo */
 	   transfer[Tipo_Evento] = Fin_llamada;
 	   list_file(INCREASING,LIST_EVENT);
 
-	}
+	
 
 	else
 	{
@@ -194,16 +218,16 @@ void Rutina_arribo_llamada(void)  /* Evento Arribo */
 	   transfer[1] = sim_time;
 	   list_file(LAST, Cola_llamadas);
 	}
-
 }
 
 
 void Rutina_Fin_llamada(void)  /* Evento Partida */
 {
-	int TipoLlamada=transfer[Tipo_Llamada]
+	int TipoLlamada = transfer[Tipo_Llamada];
+	int OperadorAtendio=transfer[Operador]
 	/* Desocupar el Servidor */
 
-	list_remove(FIRST, Servidor);
+	list_remove(FIRST, OperadorAtendio);
 
 	/* Ver si hay trabajos en cola */
 
@@ -216,7 +240,7 @@ void Rutina_Fin_llamada(void)  /* Evento Partida */
 	   sampst(sim_time - transfer[1], Demora_Consulta);
 
 	   /* Cargar en el Servidor y generar la partida */
-	   list_file(FIRST, Servidor);
+	   list_file(FIRST, O);
 	   if (TipoLlamada==1)
 		{
 			transfer[Tiempo_Evento] = sim_time + uniform(min_consulta_breve, max_consulta_breve, Fin_llamada);
@@ -228,28 +252,42 @@ void Rutina_Fin_llamada(void)  /* Evento Partida */
 		   transfer[Tipo_Llamada]=2
 	   }
 	   transfer[Tipo_Evento] = Fin_llamada;
+	   transfer[Operador] = OperadorAtendio;
 	   list_file(INCREASING,LIST_EVENT);
 	}
 }
 void Rutina_Falla_General()
 	{
 		cant_fallas++
-		if (list_size[Servidor] > 0)
+		if (list_size[Servidor_Operador_1] > 0)
 			{
 				// Desocupar servidor
-			list_remove(FIRST, Servidor)
-				// Cancelar Evento
-				event_cancel(Fin_llamada)
-
-				// Llevarlo a la cola
-				transfer[1] = sim_time;
-				list_file(Cola_llamadas)
+				list_remove(FIRST, Servidor_Operador_1)
 			}
+		else if (list_size[Servidor_Operador_2] > 0)
+			{
+				list_remove(FIRST, Servidor_Operador_2)
+			}
+		else if (list_size[Servidor_Operador_3] > 0)
+			{
+				list_remove(FIRST, Servidor_Operador_3)
+			}
+		else
+			{
+				list_remove(FIRST, Servidor_Operador_4)
+			}
+			// Cancelar Evento
+			event_cancel(Fin_llamada)
+
+			// Llevarlo a la cola
+			transfer[1] = sim_time;
+			list_file(Cola_llamadas)
 	}
 void Rutina_fin_día()
 	{
 		//Generar un nuevo inicio de día
-		transfer[1]=tiempo_inactivo
+		transfer[Tiempo_Evento] = sim_time + tiempo_inactivo;
+		list_file(INCREASING, LIST_EVENT)
 	}
 void estadisticos(void)  /* Generar Reporte de la Simulaci¢n */
 {
